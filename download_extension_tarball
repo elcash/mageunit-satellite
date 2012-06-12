@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# puts a .tgz file of an extension inside your current directory, given its connect name and version
+# you can find the latest version of an extension on the "Release Notes" tab in magento connect
+
+# credit to http://turnkeye.com/blog/download-module-archive-magento-connect/
+
+USAGE="
+$0 package_name package_version
+Requires 2 args.  Package Name is like "Facebook_Products_Tab"
+Package version is like "1.1.0" (Check the release notes tab in magento connect website)
+"
+
+if [ $# -ne 2 ]; then
+  echo "$USAGE"
+  exit 1
+else
+PKG="$1"
+VERSION="$2"
+wget http://connect20.magentocommerce.com/community/"${PKG}"/"${VERSION}"/"${PKG}"-"${VERSION}".tgz
+fi
+
+echo "downloaded "${PKG}"-"${VERSION}".tgz to current directory"
+exit 0
