@@ -2,23 +2,81 @@
 
 # puts a .tgz file of an extension inside your current directory, given its connect name and version
 # you can find the latest version of an extension on the "Release Notes" tab in magento connect
-
+#
+# works for magento connect 2.0 (default) and 1.0
+#
 # credit to http://turnkeye.com/blog/download-module-archive-magento-connect/
+# original source https://github.com/elcash/mageunit-satellite/blob/master/download_extension_tarball
+#
+# BACKGROUND
+#
+# magento extensions are pear packages within their own channels:
+#
+# 1.0 community pool: http://connect.magentocommerce.com/community/channel.xml
+# 2.0 community pool: http://connect20.magentocommerce.com/community/channel.xml
 
 USAGE="
-$0 package_name package_version
-Requires 2 args.  Package Name is like "Facebook_Products_Tab"
-Package version is like "1.1.0" (Check the release notes tab in magento connect website)
+Usage: `basename "$0"` <package_name> <package_version> [<connect_version>]
+
+  download magento extension packages directly from magento connect website.
+
+  requires at least 2 args.
+
+  <package_name>     name of package, exampe: \"Facebook_Products_Tab\"
+  <package_version>  version of package to download, like \"1.1.0\" (check the release notes tab in magento connect website)
+  <connect_version>  magento connect version: \"1.0\" or \"2.0\" (\"2.0\" if omited)
 "
 
-if [ $# -ne 2 ]; then
+if [ $# -lt 2 ]; then
   echo "$USAGE"
   exit 1
-else
-PKG="$1"
-VERSION="$2"
-wget http://connect20.magentocommerce.com/community/"${PKG}"/"${VERSION}"/"${PKG}"-"${VERSION}".tgz
 fi
 
-echo "downloaded "${PKG}"-"${VERSION}".tgz to current directory"
+function clobber_filename() {
+    local name=$1
+    n=
+    set -C
+    until
+        f=${name}.${n:+$n}
+        { command exec 3> "$f"; } 2> /dev/null
+    do
+        ((n++))
+    done
+    command exec 3>&-
+
+    echo "$f"
+}
+
+PKG="$1"
+VERSION="$2"
+CONNECT_VER="${3-2.0}"
+
+echo "trying to download "${PKG}"-"${VERSION}".tgz from magento connect ${CONNECT_VER}"
+
+case $CONNECT_VER in
+  1.0)
+    DL_URL=http://connect.magentocommerce.com/community/get/"${PKG}"-"${VERSION}".tgz
+    OUTFILE="${PKG}"-"${VERSION}"_connect-1-0.tgz
+
+    wget "${DL_URL}" -O "$(clobber_filename "${OUTFILE}")"
+    retval=$?
+  ;;
+  2.0)
+    DL_URL=http://connect20.magentocommerce.com/community/"${PKG}"/"${VERSION}"/"${PKG}"-"${VERSION}".tgz
+    wget "${DL_URL}"
+    retval=$?
+  ;;
+  *)
+    echo "unkown connect version ${CONNECT_VER}"
+    exit 1
+  ;;
+esac
+
+if [ $retval -ne 0 ]; then
+  echo "download failed ($retval)"
+  exit 2
+else
+  echo "downloaded "${PKG}"-"${VERSION}".tgz to current directory"
+fi
+
 exit 0
